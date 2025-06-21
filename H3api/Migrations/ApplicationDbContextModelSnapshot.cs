@@ -177,8 +177,7 @@ namespace H3api.Migrations
 
             modelBuilder.Entity("H3api.Entities.Book", b =>
                 {
-                    b.Navigation("Cover")
-                        .IsRequired();
+                    b.Navigation("Cover");
                 });
 #pragma warning restore 612, 618
         }

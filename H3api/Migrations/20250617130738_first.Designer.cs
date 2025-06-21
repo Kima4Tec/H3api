@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace H3api.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250609194908_first")]
+    [Migration("20250617130738_first")]
     partial class first
     {
         /// <inheritdoc />
@@ -180,8 +180,7 @@ namespace H3api.Migrations
 
             modelBuilder.Entity("H3api.Entities.Book", b =>
                 {
-                    b.Navigation("Cover")
-                        .IsRequired();
+                    b.Navigation("Cover");
                 });
 #pragma warning restore 612, 618
         }

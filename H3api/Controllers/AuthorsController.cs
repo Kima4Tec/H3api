@@ -1,12 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+﻿using H3api.Entities;
+using H3api.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using H3api.Data;
-using H3api.Entities;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace H3api.Controllers
 {
@@ -14,95 +9,100 @@ namespace H3api.Controllers
     [ApiController]
     public class AuthorsController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IAuthorRepository _authorRepository;
 
-        public AuthorsController(ApplicationDbContext context)
+        public AuthorsController(IAuthorRepository authorRepository)
         {
-            _context = context;
+            _authorRepository = authorRepository;
         }
 
-        // GET: api/Authors
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Author>>> GetAuthors()
+        public async Task<ActionResult<IEnumerable<Author>>> GetThemAllAsync()
         {
-            return await _context.Authors.ToListAsync();
+            var authors = await _authorRepository.GetAllAsync();
+            return Ok(authors);
         }
 
-        // GET: api/Authors/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Author>> GetAuthor(int id)
+        [HttpGet("first, last")]
+        public async Task<ActionResult<List<Author>>> GetMoreAuthors([FromQuery] string first, string last)
         {
-            var author = await _context.Authors.FindAsync(id);
+            var authors = await _authorRepository.GetAllAsync();
 
-            if (author == null)
+            // Convert authors to a List<Author> to allow Add operation  
+            var authorsList = authors.ToList();
+
+            var nyForfatter = new Author
+            {
+                Id = authors.Last().Id + 1,
+                FirstName = first,
+                LastName = last
+            };
+            authorsList.Add(nyForfatter);
+
+            return Ok(authorsList);
+        }
+
+        [HttpGet("except")]
+        public async Task<ActionResult<IEnumerable<Author>>> GetButAuthors([FromQuery] string except)
+        {
+            var authors = await _authorRepository.GetAllAsync();
+            var filteredAuthors = authors.Where(f => f.FirstName.ToLower() != except);
+            return Ok(filteredAuthors);
+        }
+
+        [HttpGet("only")]
+        public async Task<ActionResult<IEnumerable<Author>>> GetOnlyAuthor([FromQuery] string only)
+        {
+            var authors = await _authorRepository.GetAllAsync();
+            var onlyAuthor = authors.Where(o => o.FirstName.ToLower() == only);
+            if (!onlyAuthor.Any())
             {
                 return NotFound();
             }
-
-            return author;
+            return Ok(onlyAuthor);
         }
 
-        // PUT: api/Authors/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        [HttpGet("{id}")]
+        public async Task<ActionResult<Author>> GetAuthor(int id)
+        {
+            var author = await _authorRepository.GetByIdAsync(id);
+
+            if (author == null)
+                return NotFound();
+
+            return Ok(author);
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<Author>> PostAuthor(Author author)
+        {
+            await _authorRepository.AddAsync(author);
+            return CreatedAtAction(nameof(GetAuthor), new { id = author.Id }, author);
+        }
+
         [HttpPut("{id}")]
         public async Task<IActionResult> PutAuthor(int id, Author author)
         {
             if (id != author.Id)
-            {
                 return BadRequest();
-            }
 
-            _context.Entry(author).State = EntityState.Modified;
+            if (!await _authorRepository.ExistsAsync(id))
+                return NotFound();
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!AuthorExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
+            await _authorRepository.UpdateAsync(author);
             return NoContent();
         }
 
-        // POST: api/Authors
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<Author>> PostAuthor(Author author)
-        {
-            _context.Authors.Add(author);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction("GetAuthor", new { id = author.Id }, author);
-        }
-
-        // DELETE: api/Authors/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteAuthor(int id)
         {
-            var author = await _context.Authors.FindAsync(id);
+            var author = await _authorRepository.GetByIdAsync(id);
             if (author == null)
-            {
                 return NotFound();
-            }
 
-            _context.Authors.Remove(author);
-            await _context.SaveChangesAsync();
-
+            await _authorRepository.DeleteAsync(author);
             return NoContent();
         }
 
-        private bool AuthorExists(int id)
-        {
-            return _context.Authors.Any(e => e.Id == id);
-        }
     }
 }
