@@ -33,13 +33,16 @@ namespace H3api.Controllers
             }
             return Ok(artist);
         }
-
-
+        /// <summary>
+        /// Retrieves one artist by first name.
+        /// </summary>
+        /// <param name="firstName"></param>
+        /// <returns></returns>
         [HttpGet("firstName")]
         public async Task<ActionResult<IEnumerable<Artist>>> GetOnlyArtist([FromQuery] string firstName)
         {
             var artist = await _artistRepository.GetAllAsync();
-            var onlyArtist = artist.Where(a =>a.FirstName.Equals(firstName, StringComparison.OrdinalIgnoreCase));
+            var onlyArtist = artist.Where(o => o.FirstName == firstName);
             if (!onlyArtist.Any())
             {
                 return NotFound();
